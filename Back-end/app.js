@@ -1,12 +1,22 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const app = express();
-const Thing = require('./models/thing.js');  // Importation du modèle
+const router = express();
+const Thing = require('./models/book.js');  // Importation du modèle
+const bookRoutes = require('./Routes/book');
 
-app.use(express.json());  // Middleware pour gérer le JSON
+const app = express();
+
+app.use(express.json());
+
+app.use('/api/books', bookRoutes); // définir le préfixe des routes
+
+
+
+router.use(express.json());  // Middleware pour gérer le JSON
 
 // Connexion mongodb 
 const { MongoClient, ServerApiVersion } = require('mongodb');
+
 const uri = "mongodb+srv://alcatraz0941:Fr3d3r1c@cluster0.ey4lw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 const client = new MongoClient(uri, {
   serverApi: {
@@ -15,39 +25,21 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   }
 });
+
 async function run() {
   try {
-    await client.connect();
+    await client.connect();  // Connectez-vous au client MongoDB
     await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    console.log("Connexion à MongoDB réussie !");
+  } catch (error) {
+    console.error("Connexion à MongoDB échouée :", error);
   } finally {
     await client.close();
   }
 }
+
 run().catch(console.dir);
 
-// Route POST pour /api/stuff
-app.post('/api/book', (req, res, next) => {
-  delete req.body._id;
-  const thing = new Thing({
-    ...req.body
-  });
-  thing.save()
-    .then(() => res.status(201).json({ message: 'Objet enregistré !' }))
-    .catch(error => res.status(400).json({ error }));
-});
 
-// Route GET pour /api/stuff 
-app.get('/api/book/:id', (req, res, next) => {
-  Thing.findOne({ _id: req.params.id })
-    .then(thing => res.status(200).json(thing))
-    .catch(error => res.status(404).json({ error }));
-});
-
-app.use('/api/book', (req, res, next) => {
-  Thing.find()
-    .then(things => res.status(200).json(things))
-    .catch(error => res.status(400).json({ error }));
-});
-
-module.exports = app;
+// Export de app.js 
+module.exports = app; 
