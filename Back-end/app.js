@@ -17,7 +17,7 @@ router.use(express.json());  // Middleware pour gérer le JSON
 // Connexion mongodb 
 const { MongoClient, ServerApiVersion } = require('mongodb');
 
-const uri = "mongodb+srv://alcatraz0941:Fr3d3r1c@cluster0.ey4lw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const uri = process.env.MONGODB;
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,

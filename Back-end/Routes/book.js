@@ -1,62 +1,49 @@
 const express = require('express');
-
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const User = require('../models/user');
 const router = express.Router();
 
-const Book = require('../models/book');
-
-router.post('/', (req, res, next) => {
-  const book = new Book({
-    title: req.body.title,
-    description: req.body.description,
-    imageUrl: req.body.imageUrl,
-    price: req.body.price,
-    userId: req.body.userId
-  });
-  book.save().then(() => {
-    res.status(201).json({ message: 'Book saved successfully!' });
-  }).catch((error) => {
-    res.status(400).json({ error: error });
-  });
+// Inscription
+router.post('/signup', (req, res, next) => {
+  bcrypt.hash(req.body.password, 10)
+    .then(hash => {
+      const user = new User({
+        email: req.body.email,
+        password: hash
+      });
+      user.save()
+        .then(() => res.status(201).json({ message: 'User created!' }))
+        .catch(error => res.status(400).json({ error:'totaux' }));
+    })
+    .catch(error => res.status(500).json({ error }));
 });
 
-router.get('/:id', (req, res, next) => {
-  Book.findOne({ _id: req.params.id }).then((book) => {
-    res.status(200).json(book);
-  }).catch((error) => {
-    res.status(404).json({ error: error });
-  });
-});
-
-router.put('/:id', (req, res, next) => {
-  const book = new Book({
-    _id: req.params.id,
-    title: req.body.title,
-    description: req.body.description,
-    imageUrl: req.body.imageUrl,
-    price: req.body.price,
-    userId: req.body.userId
-  });
-  Book.updateOne({ _id: req.params.id }, book).then(() => {
-    res.status(201).json({ message: 'Book updated successfully!' });
-  }).catch((error) => {
-    res.status(400).json({ error: error });
-  });
-});
-
-router.delete('/:id', (req, res, next) => {
-  Book.deleteOne({ _id: req.params.id }).then(() => {
-    res.status(200).json({ message: 'Deleted!' });
-  }).catch((error) => {
-    res.status(400).json({ error: error });
-  });
-});
-
-router.get('/', (req, res, next) => {
-  Book.find().then((books) => {
-    res.status(200).json(books);
-  }).catch((error) => {
-    res.status(400).json({ error: error });
-  });
+// Connexion
+router.post('/login', (req, res, next) => {
+  User.findOne({ email: req.body.email })
+    .then(user => {
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+      bcrypt.compare(req.body.password, user.password)
+        .then(valid => {
+          if (!valid) {
+            return res.status(401).json({ message: 'Incorrect password' });
+          }
+          const token = jwt.sign(
+            { userId: user._id },
+            process.env.JWTSKEY, // Remplace par une clé plus sécurisée
+            { expiresIn: '24h' }
+          );
+          res.status(200).json({
+            userId: user._id,
+            token: token
+          });
+        })
+        .catch(error => res.status(500).json({ error }));
+    })
+    .catch(error => res.status(500).json({ error }));
 });
 
 module.exports = router;
