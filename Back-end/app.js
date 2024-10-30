@@ -1,45 +1,18 @@
-const express = require('express');
 const mongoose = require('mongoose');
-const router = express();
-const Thing = require('./models/book.js');  // Importation du modèle
-const bookRoutes = require('./Routes/book');
-
+const express = require('express');
 const app = express();
+const userRoutes = require('./Routes/user');
+const bookRoutes = require('./Routes/book');
 
 app.use(express.json());
 
-app.use('/api/books', bookRoutes); // définir le préfixe des routes
+// Définir les routes
+app.use('/api/user', userRoutes);
+app.use('/api/books', bookRoutes);
 
+// Connexion à MongoDB avec mongoose
+mongoose.connect(process.env.MONGODB)
+.then(() => console.log("Connexion à MongoDB réussie !"))
+.catch(error => console.error("Connexion à MongoDB échouée :", error));
 
-
-router.use(express.json());  // Middleware pour gérer le JSON
-
-// Connexion mongodb 
-const { MongoClient, ServerApiVersion } = require('mongodb');
-
-const uri = process.env.MONGODB;
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
-});
-
-async function run() {
-  try {
-    await client.connect();  // Connectez-vous au client MongoDB
-    await client.db("admin").command({ ping: 1 });
-    console.log("Connexion à MongoDB réussie !");
-  } catch (error) {
-    console.error("Connexion à MongoDB échouée :", error);
-  } finally {
-    await client.close();
-  }
-}
-
-run().catch(console.dir);
-
-
-// Export de app.js 
-module.exports = app; 
+module.exports = app;
