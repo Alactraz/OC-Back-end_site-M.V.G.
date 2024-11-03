@@ -1,12 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const bookCtrl = require('../controllers/book');
-const upload = require('../middleware/multer-config'); // Import de Multer
+const upload = require('../middleware/multer-config'); // Vérifiez le chemin
+const bookController = require('../controllers/book');
 
-// Routes pour les livres
-router.get('/', bookCtrl.getAllBooks); // Afficher tous les livres
-router.get('/:id', bookCtrl.getBookById); // Afficher un livre par ID
-router.post('/', upload.single('image'), bookCtrl.createBook); // Créer un livre avec image
-router.put('/:id', upload.single('image'), bookCtrl.updateBook); // Modifier un livre avec image
+// Route pour afficher tous les livres
+router.get('/', bookController.getAllBooks);
 
+// Route pour afficher un livre par ID
+router.get('/:id', bookController.getBookById);
+
+// Route pour créer un nouveau livre avec image
+router.post('/', upload.single('image'), bookController.createBook);
+
+// Route pour modifier un livre existant avec image
+router.put('/:id', upload.single('image'), bookController.updateBook);
+
+// Export du routeur
 module.exports = router;

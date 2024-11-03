@@ -1,26 +1,30 @@
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 
-// Configuration de Multer
+// Chemin vers le dossier images
+const imagesPath = path.join(__dirname, '../images');
+
+// Vérifie si le dossier images existe, sinon le crée
+if (!fs.existsSync(imagesPath)) {
+    fs.mkdirSync(imagesPath, { recursive: true });
+}
+
+// Configuration de Multer pour gérer le stockage des fichiers
 const storage = multer.diskStorage({
     destination: (req, file, callback) => {
-        callback(null, 'images'); // Dossier de destination des images
+        callback(null, imagesPath); // Définit le dossier de stockage
     },
     filename: (req, file, callback) => {
-        const name = file.originalname.split(' ').join('_');
-        const extension = path.extname(file.originalname);
-        callback(null, name + Date.now() + extension);
+        // Crée un nom de fichier unique
+        const name = file.originalname.split(' ').join('_').split('.')[0]; // Retire l'extension
+        const extension = path.extname(file.originalname); // Récupère l'extension
+        const fileName = `${name}_${Date.now()}${extension}`; // Combine le nom unique avec un timestamp
+        callback(null, fileName);
     }
 });
 
-const fileFilter = (req, file, callback) => {
-    if (file.mimetype.startsWith('image/')) {
-        callback(null, true);
-    } else {
-        callback(new Error('Seules les images sont autorisées !'), false);
-    }
-};
-
-const upload = multer({ storage: storage, fileFilter: fileFilter });
+// Crée une instance de Multer avec la configuration de stockage
+const upload = multer({ storage: storage });
 
 module.exports = upload;
