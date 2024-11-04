@@ -15,5 +15,8 @@ router.post('/', upload.single('image'), bookController.createBook);
 // Route pour modifier un livre existant avec image
 router.put('/:id', upload.single('image'), bookController.updateBook);
 
+// Route pour supprimer un livre par ID
+router.delete('/:id', bookController.deleteBook); // Nouvelle route
+
 // Export du routeur
 module.exports = router;
