@@ -7,7 +7,7 @@ const bookRoutes = require('./Routes/book');
 app.use(express.json());
 
 // Définir les routes
-app.use('/api/user', userRoutes);
+app.use('/api/auth', userRoutes);
 app.use('/api/books', bookRoutes);
 
 // Connexion à MongoDB avec mongoose
