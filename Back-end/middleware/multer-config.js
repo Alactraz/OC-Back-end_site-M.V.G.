@@ -1,30 +1,47 @@
 const multer = require('multer');
+const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
 
-// Chemin vers le dossier images
 const imagesPath = path.join(__dirname, '../images');
 
-// Vérifie si le dossier images existe, sinon le crée
 if (!fs.existsSync(imagesPath)) {
     fs.mkdirSync(imagesPath, { recursive: true });
 }
 
-// Configuration de Multer pour gérer le stockage des fichiers
 const storage = multer.diskStorage({
     destination: (req, file, callback) => {
-        callback(null, imagesPath); // Définit le dossier de stockage
+        callback(null, imagesPath);
     },
     filename: (req, file, callback) => {
-        // Crée un nom de fichier unique
-        const name = file.originalname.split(' ').join('_').split('.')[0]; // Retire l'extension
-        const extension = path.extname(file.originalname); // Récupère l'extension
-        const fileName = `${name}_${Date.now()}${extension}`; // Combine le nom unique avec un timestamp
+        const name = file.originalname.split(' ').join('_').split('.')[0];
+        const extension = path.extname(file.originalname);
+        const fileName = `${name}_${Date.now()}${extension}`;
         callback(null, fileName);
     }
 });
 
-// Crée une instance de Multer avec la configuration de stockage
 const upload = multer({ storage: storage });
 
-module.exports = upload;
+const optimizeImage = async (req, res, next) => {
+    if (req.file) {
+        const filePath = path.join(imagesPath, req.file.filename);
+        const optimizedPath = path.join(imagesPath, `optimized_${req.file.filename}`);
+
+        try {
+            await sharp(filePath)
+                .resize({ width: 800 })
+                .toFormat('webp')
+                .toFile(optimizedPath);
+
+            fs.unlinkSync(filePath);
+            req.file.filename = `optimized_${req.file.filename}`;
+        } catch (err) {
+            console.error('Erreur lors de l’optimisation de l’image avec Sharp :', err);
+            return res.status(500).json({ error: 'Erreur lors de l’optimisation de l’image.' });
+        }
+    }
+    next();
+};
+
+module.exports = { upload, optimizeImage };
