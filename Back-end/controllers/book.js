@@ -25,6 +25,13 @@ exports.getBookById = async (req, res) => {
     }
 };
 
+// Fonction pour valider une note
+const validateGrade = (grade) => {
+    if (isNaN(grade) || grade < 1 || grade > 5) {
+        throw new Error("La note doit être un nombre compris entre 1 et 5.");
+    }
+};
+
 // Créer un nouveau livre avec image
 exports.createBook = async (req, res) => {
     try {
@@ -33,22 +40,34 @@ exports.createBook = async (req, res) => {
         }
 
         const bookObject = JSON.parse(req.body.book);
+
+        // Suppression des champs interdits
+        delete bookObject.ratings;
+        delete bookObject.averageRating;
+
+        // Vérification et ajout de la note
+        if (bookObject.grade !== undefined) {
+            validateGrade(bookObject.grade);
+        }
+
         const book = new Book({
             ...bookObject,
             imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`,
-            userId: req.user.id // Associe le livre à l'utilisateur authentifié
+            userId: req.user.id, // Associe le livre à l'utilisateur authentifié
+            ratings: bookObject.grade
+                ? [{ userId: req.user.id, grade: bookObject.grade }]
+                : [],
+            averageRating: bookObject.grade || 0,
         });
 
         await book.save();
+
         res.status(201).json({ message: 'Livre créé avec succès !', book });
     } catch (error) {
         console.error("Erreur lors de la création du livre :", error);
         res.status(500).json({ error: error.message || 'Erreur du serveur.' });
     }
 };
-
-
-
 
 // Modifier un livre existant avec image
 exports.updateBook = async (req, res) => {
@@ -66,6 +85,32 @@ exports.updateBook = async (req, res) => {
             imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
         } : { ...req.body };
 
+        // Suppression des champs interdits
+        delete bookObject.ratings;
+        delete bookObject.averageRating;
+
+        // Vérification de la note
+        if (bookObject.grade !== undefined) {
+            validateGrade(bookObject.grade);
+
+            // Ajout ou mise à jour de la note existante
+            const existingRatingIndex = book.ratings.findIndex(
+                (rating) => rating.userId === req.user.id
+            );
+
+            if (existingRatingIndex !== -1) {
+                // Met à jour la note existante
+                book.ratings[existingRatingIndex].grade = bookObject.grade;
+            } else {
+                // Ajoute une nouvelle note
+                book.ratings.push({ userId: req.user.id, grade: bookObject.grade });
+            }
+
+            // Recalcul de la moyenne des notes
+            const totalRatings = book.ratings.reduce((sum, rating) => sum + rating.grade, 0);
+            book.averageRating = totalRatings / book.ratings.length;
+        }
+
         // Supprime l'ancienne image si une nouvelle est envoyée
         if (req.file) {
             const oldImagePath = path.join(__dirname, '../images', book.imageUrl.split('/images/')[1]);
@@ -74,10 +119,14 @@ exports.updateBook = async (req, res) => {
             });
         }
 
-        const updatedBook = await Book.findByIdAndUpdate(req.params.id, bookObject, { new: true });
+        // Met à jour les autres champs du livre
+        Object.assign(book, bookObject);
+
+        const updatedBook = await book.save();
         res.status(200).json({ message: 'Livre modifié avec succès !', updatedBook });
     } catch (error) {
-        res.status(500).json({ error });
+        console.error("Erreur lors de la mise à jour du livre :", error);
+        res.status(500).json({ error: error.message || 'Erreur du serveur.' });
     }
 };
 
